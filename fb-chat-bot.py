@@ -7,11 +7,31 @@ import requests
 import time
 import math
 import sqlite3
-from bs4 import BeautifulSoup
 import os
 import concurrent.futures
 from difflib import SequenceMatcher, get_close_matches
+# selenium imports
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+options = Options()
+c = DesiredCapabilities.CHROME
+c["pageLoadStrategy"] = "none"
+options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+options.add_argument("--headless")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-sh-usage")
 
+
+driver = webdriver.Chrome(
+    service=Service(os.environ.get("CHROMEDRIVER_PATH")),
+    options=options, desired_capabilities=c)
 
 
 class ChatBot(Client):
@@ -19,18 +39,16 @@ class ChatBot(Client):
     def onMessage(self, mid=None, author_id=None, message_object=None, thread_id=None, thread_type=ThreadType.USER, **kwargs):
         try:
             msg = str(message_object).split(",")[15][14:-1]
-
             if ("//video.xx.fbcdn" in msg):
                 msg = msg
-
             else:
                 msg = str(message_object).split(",")[19][20:-1]
         except:
             try:
                 msg = (message_object.text).lower()
-                print(msg)
             except:
                 pass
+
         def sendMsg():
             if (author_id != self.uid):
                 self.send(Message(text=reply), thread_id=thread_id,
@@ -81,7 +99,7 @@ class ChatBot(Client):
             response = requests.request(
                 "GET", url, headers=headers, params=querystring)
             data_str = response.text
-
+            print(data_str)
             data = eval(data_str.replace("null", "None"))
             country = data["response"][0]["country"]
             new_cases = data["response"][0]["cases"]["new"]
@@ -109,7 +127,12 @@ class ChatBot(Client):
             pressure = json_data["main"]["pressure"]
             humidity = json_data["main"]["humidity"]
             wind_speed = json_data["wind"]["speed"]
-
+            print(
+                f"maximum temperature: {max_temp-273.15} *C \nminimum temperature: {min_temp-273.15} *C")
+            print(f"visibilty: {visibility}m")
+            print(f"pressure: {pressure}")
+            print(f"humidity: {humidity}")
+            print(f"wind speed: {wind_speed}m/s")
             return(
                 f"The current temperature of {city} is %.1f degree celcius with {description}" % celcius_res)
 
@@ -149,7 +172,6 @@ class ChatBot(Client):
                         answer = answer.replace("sqrt", "√")
 
                         if(thread_type == ThreadType.USER):
-                            f
                             self.sendRemoteFiles(
                                 file_urls=answer, message=None, thread_id=thread_id, thread_type=ThreadType.USER)
                         elif(thread_type == ThreadType.GROUP):
@@ -283,7 +305,7 @@ class ChatBot(Client):
 
             headers = {
                 'x-rapidapi-host': "bing-image-search1.p.rapidapi.com",
-                'x-rapidapi-key': "55d459414fmsh32c0a06c0e3e34dp1f40a5jsn084fca18f5ea"
+                'x-rapidapi-key': "8cd2881885msh9933f89c5aa2186p1d8076jsn7303d42b3c66"
             }
             response = requests.request(
                 "GET", url, headers=headers, params=querystring)
@@ -313,18 +335,19 @@ class ChatBot(Client):
                            "profanityAction": "NoAction", "textType": "plain"}
 
             payload = f'[{{"Text": "{query}"}}]'
-
+            print("PAYLOAD>>", payload)
             headers = {
                 'content-type': "application/json",
                 'x-rapidapi-host': "microsoft-translator-text.p.rapidapi.com",
-                'x-rapidapi-key': "55d459414fmsh32c0a06c0e3e34dp1f40a5jsn084fca18f5ea"
+                'x-rapidapi-key': "8cd2881885msh9933f89c5aa2186p1d8076jsn7303d42b3c66"
             }
 
             response = requests.request(
                 "POST", url, data=payload, headers=headers, params=querystring)
 
             json_response = eval(response.text)
-
+            print(json_response[0]["translations"][0]["text"])
+            print(json_response)
             return json_response[0]["translations"][0]["text"]
 
         def imageSearch(self, msg):
@@ -347,7 +370,7 @@ class ChatBot(Client):
 
             headers = {
                 'x-rapidapi-host': "bing-image-search1.p.rapidapi.com",
-                'x-rapidapi-key': "55d459414fmsh32c0a06c0e3e34dp1f40a5jsn084fca18f5ea"
+                'x-rapidapi-key': "8cd2881885msh9933f89c5aa2186p1d8076jsn7303d42b3c66"
             }
             print("sending requests...")
             response = requests.request(
@@ -401,35 +424,50 @@ class ChatBot(Client):
                     self.send(Message(text=f'{file_name}\n Link: {file_url}'),
                               thread_id=thread_id, thread_type=ThreadType.USER)
 
-       
         try:
             if("search pdf" in msg):
                 searchFiles(self)
-            elif("download youtube" in msg):
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
-                link = "".join(msg.split()[-3:])
-                yt_url = link
-                print("yt", yt_url)
-                try:
-                    yt_url = yt_url.replace(
-                        "youtu.be/", "www.youtube.com/watch?v=")
-                except:
-                    pass
-                yt_url = yt_url.replace("youtube", "clipmega")
-                url = requests.get(yt_url, headers=headers)
-                soup = BeautifulSoup(url.text, "html.parser")
-                link = soup.select(".btn-group > a")
-                link = link[0]
-                link = str(link)
-                indx = link.find("href=")
-                indx_l = link.find("extension=mp4")
-                link = link[indx+6:indx_l+13].replace("amp;", "")
-                link = link.replace(" ", "%20")
-                final_link = link
-                print("final", final_link)
-                self.sendRemoteFiles(
-                    file_urls=final_link, message=None, thread_id=thread_id, thread_type=thread_type)
+            elif("check ipo" in msg):
+                query = msg.split()
+                company = " ".join(query[2:-1])
+                if (company.split()[0]) == "of":
+                    company = " ".join(query[3:-1])
+                demat_num = int(query[-1])
+                print("getting url")
+                driver.get("https://iporesult.cdsc.com.np/")
+
+                inp = driver.find_element(By.ID, "boid").send_keys(demat_num)
+
+                companies = []
+                print("finding elements..")
+                company_names = driver.find_element(
+                    By.NAME,  "companyShare").find_elements(By.TAG_NAME, "option")
+                for name in company_names:
+                    companies.append(name.text)
+
+                for full_comapany_name in companies[1:]:
+                    print("inside loop..")
+                    if(company) in full_comapany_name.lower():
+
+                        select = Select(driver.find_element(
+                            By.NAME, 'companyShare'))
+                        select.select_by_visible_text(full_comapany_name)
+                WebDriverWait(driver, 1).until(EC.invisibility_of_element(
+                    (By.CSS_SELECTOR, "p-4.ng-touched.ng-dirty.ng-valid")))
+                driver.execute_script("arguments[0].click();", WebDriverWait(driver, 1).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.mt-3.btn-block.w-100"))))
+
+                result = driver.find_element(
+                    By.CSS_SELECTOR, ".text-success.text-center").text
+                if(len(result) == 0):
+                    reply = "Sorry, not alloted for the entered BOID."
+                    print(reply)
+                    self.send(Message(text=reply), thread_id=thread_id,
+                              thread_type=thread_type)
+                else:
+                    reply = result
+                    self.send(Message(text=reply), thread_id=thread_id,
+                              thread_type=thread_type)
             elif("search image" in msg):
                 imageSearch(self, msg)
 
@@ -437,7 +475,7 @@ class ChatBot(Client):
                 programming_solution(self, msg)
             elif("translate" in msg):
                 reply = translator(self, msg, msg.split()[-1])
-
+                print(reply)
                 sendQuery()
             elif "weather of" in msg:
                 indx = msg.index("weather of")
@@ -484,14 +522,14 @@ class ChatBot(Client):
             elif("crazy" in msg):
                 reply = "Anything wrong about that."
                 sendMsg()
-            elif ("are u a robot" in msg):
-                reply = "No"
+            elif ("are funny" in msg):
+                reply = "No. I am not. You are."
                 sendMsg()
             elif ("marry me" in msg):
-                reply = "Pass wala kapang ligo"
+                reply = "Yes, if you are nice and kind girl. But if you are boy RIP."
                 sendMsg()
-            elif ("where you from" in msg):
-                reply = "Philippines"
+            elif ("you from" in msg):
+                reply = "I am from Nepal. Currently living in Kathmandu"
                 sendMsg()
             elif ("you sure" in msg):
                 reply = "Yes. I'm sure."
@@ -527,7 +565,7 @@ class ChatBot(Client):
                 reply = "good night🌃🌙"
                 sendMsg()
             elif ("good night" in msg or msg == "gn"):
-                reply = "good night bakla"
+                reply = "good night🌃🌙"
                 sendMsg()
             elif ("hello" in msg):
                 reply = "Hi"
@@ -536,11 +574,11 @@ class ChatBot(Client):
                 reply = "Hi"
                 sendMsg()
             elif (msg == "hi"):
-                reply = "Hello! Putang ina mo"
+                reply = "Hello! How can I help you?"
                 sendMsg()
 
-        except Exception as e:
-            print(e)
+        except:
+            pass
 
         self.markAsDelivered(author_id, thread_id)
 
@@ -654,15 +692,16 @@ class ChatBot(Client):
 
 
 cookies = {
-    "sb": "s-vYYuJpLrfcT_82baPZq-iZ",
-    "fr": "0m2niGFlHAhj9LOxq.AWW55r5rXNjxRAXCH43ANDW7YU4.Bi2Ouz.be.AAA.0.0.Bi2PhV.AWWq4SCgReQ",
+    "sb": "FB_dYg4wQTkf75KxFjWlyVdD",
+    "fr": "0QZPOAH3tnxPRojB7.AWUVSM3802LraFs9nnOnODRwm4M.Bi3R8U.AI.AAA.0.0.Bi3R8z.AWUuPvghzVk",
     "c_user": "100080716399718",
-    "datr": "s-vYYjwICcdKBaPd-7C3pgas",
-    "xs": "50%3AKqKN4qq8nlGXuA%3A2%3A1658386515%3A-1%3A15903"
+    "datr": "FB_dYgEWG2MtZPtLpJHAaFU5",
+    "xs": "21%3AYe-lD0z_poKK5Q%3A2%3A1658658608%3A-1%3A15903"
 }
 
 
-client = ChatBot("", "", session_cookies=cookies)
+client = ChatBot("",
+                 "", session_cookies=cookies)
 print(client.isLoggedIn())
 
 try:
