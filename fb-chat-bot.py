@@ -654,11 +654,11 @@ class ChatBot(Client):
 
 
 cookies = {
-    "sb": "s-vYYuJpLrfcT_82baPZq-iZ",
-    "fr": "0m2niGFlHAhj9LOxq.AWW55r5rXNjxRAXCH43ANDW7YU4.Bi2Ouz.be.AAA.0.0.Bi2PhV.AWWq4SCgReQ",
+    "sb": "6jPdYjRFa731Slqx_R1Kly_T",
+    "fr": "0i46LC84bvmcOqsWg.AWVkKhGGK2uMwOizdWLcwhYrmRI.Bi3TPq.ee.AAA.0.0.Bi3TQB.AWULVxo9c24",
     "c_user": "100080716399718",
-    "datr": "s-vYYjwICcdKBaPd-7C3pgas",
-    "xs": "50%3AKqKN4qq8nlGXuA%3A2%3A1658386515%3A-1%3A15903"
+    "datr": "6jPdYuuXXfXd08uI66TEMhVO",
+    "xs": "35%3AVhMVexZgIzo8uw%3A2%3A1658663935%3A-1%3A15903"
 }
 
 
